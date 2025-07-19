@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Контроль оборудования в парикмахерской</title>
+<style>
+  body {
+    font-family: 'Arial', sans-serif;
+    background-color: #f4f4f9;
+    margin: 0;
+    padding: 20px;
+    color: #333;
+  }
+
+  h1, h2, h3 {
+    color: #2c3e50;
+  }
+
+  .container {
+    max-width: 800px;
+    margin: auto;
+    background-color: #fff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  button {
+    background-color: #3498db;
+    color: white;
+    border: none;
+    padding: 12px 20px;
+    margin-top: 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+  }
+
+  button:hover {
+    background-color: #2980b9;
+    transform: scale(1.02);
+  }
+
+#resultImage {
+    display: block;
+    margin-top: 20px;
+    max-width: 100%;
+    border-radius: 4px;
+    border: 1px solid #ccc;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
+      transition: transform 0.2s ease;
+
+}
+#resultImage:hover {
+transform: scale(1.02);
+}
+
+#stats {
+   white-space: pre-line; 
+   background-color:#ecf0f1; 
+   padding:10px; 
+   border-radius:4px; 
+   margin-top:15px; 
+   font-family:'Courier New', monospace; 
+}
+
+.custom-upload-btn {
+  background-color: #e67e22; 
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+.custom-upload-btn:hover {
+  background-color:#d35400; 
+}
+
+#customImageInput {
+   display:none; 
+}
+  
+#fileName {
+   font-family:'Courier New', monospace; 
+   font-size:14px; 
+   color:#555; 
+}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>Загрузка изображения</h1>
+<div style="margin-bottom:15px; display:flex; align-items:center; gap:10px;">
+<input type="file" id="customImageInput" accept="image/*" />
+<button id="selectFileBtn" class="custom-upload-btn">Выбрать изображение</button>
+<span id="fileName">Файл не выбран</span>
+
+</div>
+<button id="showResultBtn">Показать результат</button>
+<h2>Результат:</h2>
+<img id="resultImage" src="" alt="Результат обработки" />
+
+<h3>Обнаружено объектов:</h3>
+<div id="stats">Здесь появится информация о результатах.</div>
+
+<h2>Генерация отчётов</h2>
+<div style="margin-top:15px;">
+<button onclick="downloadReport('pdf')">Скачать PDF-отчёт</button>
+<button onclick="downloadReport('excel')">Скачать Excel-отчёт</button>
+</div>
+</div>
+
+<script>
+// Связываем кнопку с скрытым input
+document.getElementById('selectFileBtn').addEventListener('click', () => {
+  document.getElementById('customImageInput').click();
+});
+
+// Обновляем название выбранного файла
+document.getElementById('customImageInput').addEventListener('change', () => {
+  const fileNameSpan = document.getElementById('fileName');
+  const files = document.getElementById('customImageInput').files;
+
+  if (files.length >0) {
+      fileNameSpan.textContent = files[0].name;
+   } else {
+      fileNameSpan.textContent = 'Файл не выбран';
+   }
+});
+
+// Функция скачивания отчётов
+async function downloadReport(format) {
+const url='';
+if(format==='pdf'){
+      url='/download/pdf';
+} else if(format==='excel'){
+      url='/download/excel';
+}
+
+const response=await fetch(url);
+
+if(!response.ok){
+      alert('Ошибка при скачивании отчёта.');
+      return;
+}
+  
+const blob=await response.blob();
+const link=document.createElement('a');
+link.href=window.URL.createObjectURL(blob);
+
+link.download=format==='pdf'?'report.pdf':'report.xlsx';
+
+document.body.appendChild(link);
+link.click();
+document.body.removeChild(link);
+}
+
+// Функция обработки изображения
+async function processImage() {
+const fileInput = document.getElementById('customImageInput');
+
+if (!fileInput.files[0]) {
+        alert('Пожалуйста выберите изображение.');
+        return;
+}
+    
+const formData = new FormData();
+formData.append('image', fileInput.files[0]);
+
+try {
+        const response = await fetch('/process', {
+            method:'POST',
+            body: formData,
+        });
+        if (!response.ok) {
+            alert('Ошибка при обработке изображения.');
+            return;
+        }
+        const data = await response.json();
+
+        // Обновляем изображение результата
+        document.getElementById('resultImage').src = '/static/result.jpg?' + new Date().getTime();
+
+        // Обновляем статистику
+        let statsText='';
+        for (const [objType, count] of Object.entries(data)) {
+            statsText += `${objType}: ${count}\n`;
+        }
+        document.getElementById('stats').innerText=statsText;
+
+     } catch (err) {
+       alert('Произошла ошибка.');
+       console.error(err);
+     }
+}
+
+// Обработчик кнопки "Показать результат"
+document.getElementById('showResultBtn').addEventListener('click', () => {
+ processImage();
+});
+</script>
+
+</div>
+
+</body>
+</html>
